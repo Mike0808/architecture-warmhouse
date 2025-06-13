@@ -1,0 +1,24 @@
+@startuml
+!include <C4/C4_Component>
+skinparam defaultFontName "Noto Sans" 
+title Компонентная диаграмма: Сервис управления сценариями (job_scheduler)
+
+Container_Boundary(job_scheduler, "Сервис управления сценариями") {
+    Component(api_handler, "REST API", "Go", "Обработка входящих HTTP-запросов для создания, редактирования и запуска сценариев")
+    Component(scenario_service, "Сервис сценариев", "Go", "Бизнес-логика управления сценариями пользователя")
+    Component(event_publisher, "Публикатор событий", "AMQP-клиент", "Публикует события сценариев в шину событий RabbitMQ")
+    ComponentDb(scenario_repository, "Хранилище сценариев", "PostgreSQL_DB", "Хранит сценарии пользователей")
+}
+
+Rel(api_handler, scenario_service, "Передаёт команды управления сценариями", "Go func call")
+Rel(scenario_service, event_publisher, "Публикует событие запуска сценария", "AMQP")
+Rel(scenario_service, scenario_repository, "Читает и сохраняет сценарии", "CRUD")
+
+' Внешние связи
+System_Ext(api_gateway, "API Gateway")
+System_Ext(event_bus, "Шина событий RabbitMQ")
+
+Rel(api_gateway, api_handler, "Вызовы API для управления сценариями", "REST/JSON")
+Rel(event_publisher, event_bus, "Публикует событие сценария", "AMQP")
+
+@enduml

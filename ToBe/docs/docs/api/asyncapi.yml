@@ -1,0 +1,148 @@
+asyncapi: 2.6.0
+info:
+  title: Device Command Service
+  description: AsyncAPI specification for device control via RabbitMQ
+  version: 1.0.0
+
+servers:
+  rabbitmq:
+    url: amqp://rabbitmq.prod.smarthome.com
+    protocol: amqp
+    description: Production RabbitMQ broker
+    security:
+      - userPassword: []
+
+defaultContentType: application/json
+
+channels:
+  device.command:
+    publish:
+      summary: "Send commands to devices"
+      operationId: sendDeviceCommand
+      message:
+        $ref: "#/components/messages/DeviceCommand"
+  
+  device.status:
+    subscribe:
+      summary: "Receive device status updates"
+      operationId: receiveDeviceStatus
+      message:
+        $ref: "#/components/messages/DeviceStatus"
+
+  device.telemetry:
+    subscribe:
+      summary: "Receive device telemetry data"
+      operationId: receiveDeviceTelemetry
+      message:
+        $ref: "#/components/messages/DeviceTelemetry"
+
+components:
+  messages:
+    DeviceCommand:
+      name: DeviceCommand
+      payload:
+        type: object
+        required: [command_id, device_id, action]
+        properties:
+          command_id:
+            type: string
+            format: uuid
+            description: Unique command identifier
+          device_id:
+            type: string
+            format: uuid
+            description: Target device ID
+          action:
+            type: string
+            enum: [turn_on, turn_off, set_value, reboot, update_config]
+            description: Action to perform
+          parameters:
+            type: object
+            additionalProperties: true
+            description: Action-specific parameters
+          scheduled_at:
+            type: string
+            format: date-time
+            description: When to execute the command
+          timeout:
+            type: integer
+            description: Timeout in seconds
+          priority:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+
+    DeviceStatus:
+      name: DeviceStatus
+      payload:
+        type: object
+        required: [device_id, status, timestamp]
+        properties:
+          device_id:
+            type: string
+            format: uuid
+          status:
+            type: string
+            enum: [online, offline, busy, error]
+          timestamp:
+            type: string
+            format: date-time
+          firmware_version:
+            type: string
+          capabilities:
+            type: object
+            additionalProperties: true
+          error_details:
+            type: object
+            additionalProperties: true
+
+    DeviceTelemetry:
+      name: DeviceTelemetry
+      payload:
+        type: object
+        required: [device_id, timestamp, metrics]
+        properties:
+          device_id:
+            type: string
+            format: uuid
+          timestamp:
+            type: string
+            format: date-time
+          metrics:
+            type: object
+            additionalProperties: true
+            description: Key-value pairs of telemetry data
+          battery_level:
+            type: integer
+            minimum: 0
+            maximum: 100
+          signal_strength:
+            type: integer
+            minimum: 0
+            maximum: 100
+
+  securitySchemes:
+    userPassword:
+      type: userPassword
+      description: RabbitMQ credentials
+
+  correlationIds:
+    commandCorrelation:
+      description: Default correlation ID
+      location: "$message.header#/correlation_id"
+
+x-exchange:
+  device.command:
+    name: "device.commands"
+    type: "direct"
+    durable: true
+    autoDelete: false
+  device.status:
+    name: "device.status"
+    type: "fanout"
+    durable: true
+  device.telemetry:
+    name: "device.telemetry"
+    type: "topic"
+    durable: true

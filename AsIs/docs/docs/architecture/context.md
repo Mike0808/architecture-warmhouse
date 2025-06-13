@@ -1,0 +1,26 @@
+```puml
+@startuml
+!include <C4/C4_Context>
+
+title WarmHouse Context Diagram 
+
+Person(owner, "Home Owner", "Wants to control heating and check temperature")
+
+System_Boundary(heating_system, "Heating Management System") {
+    System(heating_manager, "Heating Manager Monolith", "Go", "Manages heating and temperature data")
+}
+System_Ext(sensor_controller, "Sensor Control Monolith", "Go", "Controls heating and temperature sensors")
+System_Ext(sensor, "Heating Sensor", "Physical temperature sensor and heating controller")
+
+Rel(owner, heating_manager, "Uses web/mobile interface", "HTTP")
+Rel(heating_manager, sensor_controller, "Sends control commands\nPolls heating sensor", "HTTP/API")
+Rel(sensor_controller, sensor, "Manage IoT devaces by external commands", "MQTT")
+
+' Specialist deployment process
+Person(specialist, "Installation Specialist", "Deploys and configures heating systems")
+Rel(specialist, heating_manager, "Configures new installations", "Admin Interface")
+Rel(specialist, sensor_controller, "Physically installs and connects", "Admin Interface")
+Rel(specialist, sensor, "Physically installs and connects", "On-site")
+
+@enduml
+```

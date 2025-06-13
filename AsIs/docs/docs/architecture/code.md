@@ -1,0 +1,75 @@
+```puml
+@startuml
+title Warmhouse Sensors Handler Code Diagram
+
+top to bottom direction
+
+!include <C4/C4_Component>
+package "handlers" {
+    class SensorHandler {
+        +*db.DB DB
+        +TemperatureService *services.SensorManagerService
+        +func RegisterRoutes()
+        +func GetSensors()
+        +func GetSensorByID()
+        +func GetTemperatureByLocation()
+        +func CreateSensor()
+        +func UpdateSensor()
+        +func DeleteSensor()
+        +func UpdateSensorValue()
+    }
+}
+
+' package "models" {
+'     class Sensor {
+'         - ID          int
+'         - Name        string
+'         - Type        SensorType
+'         - Location    string
+'         - Value       float64
+'         - Unit        string
+'         - Status      string
+'         - LastUpdated time
+'         - CreatedAt   time
+'     }
+
+'     class SensorCreate  {
+'         - Name     string
+'         - Type     SensorType
+'         - Location string
+'         - Unit     string
+'     }
+
+'     class SensorUpdate {
+'         - Name     string
+'         - Type     SensorType
+'         - Location string
+'         - Value    *float64
+'         - Unit     string
+'         - Status   string
+'     }
+' }
+package "services" {
+    class SensorManagerService {
+        +BaseURL    string
+	    +HTTPClient *http.Client
+        +func GetSensorManager()
+        +func GetSensorManagerByID()
+    }
+    class SensorManagerResponse {
+        +Value       float64   
+        +Unit        string    
+        +Timestamp   time.Time 
+        +Location    string    
+        +Status      string    
+        +SensorID    string    
+        +SensorType  string    
+        +Description string    
+    }
+}
+
+SensorManagerService --> SensorManagerResponse : return
+SensorHandler --> SensorManagerService : uses to route
+
+@enduml
+```

@@ -1,0 +1,46 @@
+```puml
+@startuml Heating Manager - Component Diagram
+!include <C4/C4_Component>
+
+title Heating Manager Component Breakdown
+
+Container_Boundary(heating_manager, "Heating Manager (Go)") {
+    Component(sensor_manager_service, "Sensor Adapter", "Go", "1.Manages connections to sensor controller")
+
+    Component(heating_api, "Heating and Temperature Logic", "Go", "1.Polling sensors\n2.Manage Heating")
+    
+    Component(db_adapter, "DB Adapter", "Go", "1.Connection pooling\n2.Query builder")
+
+    Component(device_tracking, "Monitoring device", "Go", "1. Tracking for devices over 1 min")
+
+}
+
+' External containers (from original diagram)
+Container(web_ui, "Web UI")
+ContainerDb(main_db, "Main Database")
+System_Ext(sensor_controller, "Sensor Controller")
+
+' Internal relationships
+Rel(heating_api, sensor_manager_service, "Routes device requests", "Method call")
+
+Rel(heating_api, db_adapter, "Stores/reads device config; Reads historic devices value, status", "Method call")
+
+Rel(device_tracking, sensor_manager_service, "Get data about device value, status", "Method call")
+
+Rel(device_tracking, db_adapter, "Stores device value, status", "Method call")
+
+' External connections
+Rel(web_ui, heating_api, "API calls", "HTTP/REST")
+Rel(db_adapter, main_db, "Executes queries", "SQL")
+Rel(sensor_manager_service, sensor_controller, "Controls devices", "RPC Call")
+
+note right of sensor_manager_service
+    **Current Constraints**:
+    1. Synchronous polling only
+    2. Manual device registration
+    3. No event-driven updates
+    4. Hardcoded polling intervals
+end note
+
+@enduml
+```

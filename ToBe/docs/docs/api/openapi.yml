@@ -1,0 +1,228 @@
+openapi: 3.0.3
+info:
+  title: Scenario Service API
+  description: API for managing smart home automation scenarios
+  version: 1.0.0
+servers:
+  - url: https://api.smarthome.com/v1
+    description: Production server
+tags:
+  - name: Scenarios
+    description: Scenario operations
+
+components:
+  schemas:
+    Scenario:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        home_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Morning Routine"
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Step'
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trigger'
+        status:
+          type: string
+          enum: [active, inactive, draft]
+        created_at:
+          type: string
+          format: date-time
+    
+    Step:
+      type: object
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          example: "turn_on"
+        parameters:
+          type: object
+          additionalProperties:
+            type: string
+    
+    Trigger:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [time, device, manual]
+          example: "time"
+        condition:
+          type: string
+          example: "at 08:00"
+    
+    ScenarioFilter:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        from_date:
+          type: string
+          format: date-time
+          nullable: true
+        to_date:
+          type: string
+          format: date-time
+          nullable: true
+    
+    Pagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+    
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+
+paths:
+  /scenarios:
+    post:
+      tags: [Scenarios]
+      summary: Create a new scenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Scenario'
+      responses:
+        '201':
+          description: Scenario created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    get:
+      tags: [Scenarios]
+      summary: List scenarios with filtering
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: filter
+          schema:
+            $ref: '#/components/schemas/ScenarioFilter'
+        - in: query
+          name: page
+          schema:
+            $ref: '#/components/schemas/Pagination'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scenario'
+
+  /scenarios/{id}:
+    get:
+      tags: [Scenarios]
+      summary: Get a scenario by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Scenario found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+        '404':
+          description: Scenario not found
+    
+    put:
+      tags: [Scenarios]
+      summary: Update a scenario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Scenario'
+      responses:
+        '200':
+          description: Scenario updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+    
+    delete:
+      tags: [Scenarios]
+      summary: Delete a scenario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Scenario deleted
+        '404':
+          description: Scenario not found

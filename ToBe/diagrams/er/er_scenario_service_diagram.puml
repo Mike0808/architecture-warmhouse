@@ -1,0 +1,47 @@
+@startuml
+' ER Diagram for Smart Home SaaS
+
+hide circle
+skinparam linetype ortho
+
+entity "Scenario" as scenario {
+    * scenario_id : UUID <<PK>>
+    --
+    * house_id : UUID <<FK>>
+    * name : String
+    * description : Text
+    * trigger_type : Enum(time,event,manual)
+    * trigger_config : JSON
+    * actions : JSON
+    * status : Enum(active,inactive)
+    * created_at : DateTime
+}
+
+entity "Event" as event {
+    * event_id : UUID <<PK>>
+    --
+    * house_id : UUID <<FK>>
+    * source_type : Enum(device,module,scenario,system)
+    * source_id : UUID
+    * type : String
+    * payload : JSON
+    * timestamp : DateTime
+    * severity : Enum(info,warning,error,critical)
+}
+
+entity "ScenarioExecution" as scenario_exec {
+    * execution_id : UUID <<PK>>
+    --
+    * scenario_id : UUID <<FK>>
+    * trigger_event_id : UUID <<FK>>
+    * start_time : DateTime
+    * end_time : DateTime
+    * status : Enum(pending,running,completed,failed)
+    * result : JSON
+}
+
+' Relationships
+
+scenario ||--o{ scenario_exec : runs
+scenario_exec -- event : triggered by
+@enduml
