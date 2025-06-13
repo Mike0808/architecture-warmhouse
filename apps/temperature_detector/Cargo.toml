@@ -1,0 +1,9 @@
+[package]
+name = "temperature_detector"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }

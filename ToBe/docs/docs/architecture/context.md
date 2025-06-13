@@ -1,0 +1,26 @@
+```puml
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Context.puml
+
+title Система управления IoT-устройствами - Контекст
+
+Person(user, "Пользователь", "Взаимодействует с устройствами")
+
+System_Boundary(b0, "Домены системы") {
+    System(device_mgmt, "Управление устройствами", "Подключение, отключение, сценарии")
+    System(device_tracking, "Отслеживание устройств", "Мониторинг, нотификации")
+    System(integration, "Интеграция", "Связь с внешними API")
+}
+
+System_Ext(device, "IoT-устройство", "Датчики/исполнительные механизмы")
+System_Ext(external_system, "Внешняя система", "Сторонний сервис (например, облако)")
+
+Rel(user, device_mgmt, "Упралвнеие устройствами и мониторингом")
+Rel(device_mgmt, device, "Отправляет команды и запросы")
+Rel(device_mgmt, device_tracking, "Настройка мониторинга и оповещений")
+Rel(device_tracking, device, "Запрашивает телеметрию")
+Rel(external_system, integration, "Синхронизирует данные")
+Rel(integration, device_mgmt, "Отправляет запросы")
+
+@enduml
+``` 
