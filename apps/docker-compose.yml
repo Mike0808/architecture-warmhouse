@@ -5,13 +5,13 @@ services:
     image: postgres:16-alpine
     container_name: smarthome-postgres
     environment:
-      POSTGRES_USER: smarthome
-      POSTGRES_PASSWORD: smarthome
-      POSTGRES_DB: smarthome
+      POSTGRES_USER: poetgres
+      POSTGRES_PASSWORD: poetgres
+      POSTGRES_DB: poetgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "smarthome"]
+      test: ["CMD", "pg_isready", "-U", "poetgres"]
       interval: 10s
       retries: 5
       start_period: 5s
