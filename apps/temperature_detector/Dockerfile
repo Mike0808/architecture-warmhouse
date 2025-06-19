@@ -1,33 +1,92 @@
-# Use the official Rust image as a build environment
-FROM rust:1.70 as builder
+# –– Builder Stage ––
 
-# Create a new empty shell project
+FROM rust:1.84-slim-bullseye as builder
+
+# 1. Configure TUNA mirrors for both Debian and Rust
+
+RUN echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye main contrib non-free' > /etc/apt/sources.list &&   \
+    echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye-updates main contrib non-free' >> /etc/apt/sources.list &&   \
+    echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free' >> /etc/apt/sources.list
+
+# 2. Configure Rust registry
+
+RUN mkdir -p /usr/local/cargo &&   \
+printf '[source.crates-io]\nreplace-with = "tuna"\n\n[source.tuna]\nregistry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"\n' > /usr/local/cargo/config.toml
+
+# 3. Install build dependencies
+
+RUN apt-get update &&   \
+apt-get install -y   \
+ca-certificates   \
+pkg-config   \
+libssl-dev   \
+build-essential &&   \
+update-ca-certificates &&   \
+rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-RUN USER=root cargo new --bin temperature-api
-WORKDIR /app/temperature-api
 
-# Copy over your manifests
-COPY ./Cargo.toml ./Cargo.toml
+# 4. Copy dependency files first for better caching
 
-# This build step will cache your dependencies
+COPY Cargo.toml Cargo.lock ./
+
+# 5. Create dummy main.rs to build dependencies
+
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+
+# 6. Build dependencies only
+
+RUN cargo build --release && rm -rf src target/release/deps/temperature_detector*
+
+# 7. Copy actual source code
+
+COPY src ./src
+
+# 8. Build the actual application
+
 RUN cargo build --release
-RUN rm src/*.rs
 
-# Copy your source tree
-COPY ./src ./src
+# –– Runtime Stage ––
 
-# Build for release
-RUN rm ./target/release/deps/temperature_api*
-RUN cargo build --release
+FROM debian:bookworm-slim
 
-# Our final base
-FROM debian:bullseye-slim
+# 9. Configure TUNA mirror for runtime packages
 
-# Install OpenSSL - required by actix-web
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware' > /etc/apt/sources.list &&   \
+echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware' >> /etc/apt/sources.list &&   \
+echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware' >> /etc/apt/sources.list
 
-# Copy the build artifact from the build stage
-COPY --from=builder /app/temperature-api/target/release/temperature-api .
+# 10. Install runtime dependencies
 
-# Set the startup command to run your binary
-CMD ["./temperature-api"]
+RUN apt-get update &&   \
+apt-get install -y   \
+libssl3   \
+ca-certificates   \
+openssl \
+libc6   \
+curl \
+&& rm -rf /var/lib/apt/lists/*
+
+# 11. Create non-root user for security
+
+RUN useradd -r -s /bin/false appuser
+
+# 12. Copy binary and set permissions
+
+COPY --from=builder /app/target/release/temperature_detector /usr/local/bin/temperature-api
+RUN chmod +x /usr/local/bin/temperature-api
+
+# 13. Switch to non-root user
+
+USER appuser
+
+# 14. Set environment variables
+
+ENV RUST_LOG=DEBUG
+ENV RUST_BACKTRACE=1
+
+# 15. Expose port if your app uses one (adjust as needed)
+
+EXPOSE 8181
+
+CMD ["/usr/local/bin/temperature-api"]
